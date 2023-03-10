@@ -1,4 +1,4 @@
 #ignore all .exe files
 *.exe
-
+temp.py
 .vscode/
