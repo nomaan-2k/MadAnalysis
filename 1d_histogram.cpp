@@ -21,7 +21,8 @@ using namespace std;
 
 
 // reader class
-// contains readDataFile member function that reads data from a file and returns it in form of a vector of vectors
+// contains readDataFile member function that reads data from a file 
+// and returns it in form of a vector of vectors
 class reader
 {
 
@@ -39,7 +40,7 @@ public:
         if (!fin.is_open())       // check if the file was opened successfully
         {
             // if the file was not opened successfully, print an error message and exit the program
-            cout << "\nNOT ABLE TO READ FILE! Press any key to exit";
+            cout << "\n NOT ABLE TO READ FILE! Press any key to exit";
             getch();
             exit(0); 
         }
@@ -152,6 +153,16 @@ public:
         double mass = sqrt(pow(e, 2) - p);               // Calculate the mass using the energy and momentum components in MeV/c^2
         return mass;
     }
+
+/* To add a new function
+    
+    double pseudorapidity()
+    {
+        double eeta=(log(tan(polar_angle()/2.0)))/2.0;
+        return eeta;
+    }
+*/    
+
 };
 
 // Function to initialize a map representing a histogram
@@ -224,6 +235,8 @@ int main()
     // The inputs include the file location, distribution name, number of bins,
     // minimum and maximum values of x
     // These are used to generate a histogram for the given distribution
+    // NOTE: inputs can be entered in a single line in the form 
+    // [file_location  distribution_name  no_of_bins  x_min  x_max]
 
     // Get input from user
     cout << "\n*************************************************\n\tWelcome to 1D Histogram Generator\n*************************************************\n";
@@ -337,7 +350,20 @@ int main()
         probabilityMap(mp);
         generate_HistFile(mp, maxx);
     }
+/* 
+To add a new distribution 
 
+    else if (d_name == "eeta") // pseudorapidity distribution
+    {
+        for (int i = 0; i < fvData.size(); i++)
+        {
+            f.update(fvData[i][0], fvData[i][1], fvData[i][2], fvData[i][3]);
+            mapUpdate(f.pseudorapidity(), mp, minx, maxx);
+        }
+        probabilityMap(mp);
+        generate_HistFile(mp, maxx);
+    }
+*/
     else
     {
         // Error message if entered distribution is not available
