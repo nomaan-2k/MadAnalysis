@@ -1,65 +1,78 @@
-// to generate a 1D histogram from a given four vector data file
+/* A program to generate a 1D histogram from a given four vector data file
+   The user enters the data file location, distribution name, number of bins,
+   minimun value for x-axis, maximum value for x-axis.
+
+   Using the data from input file the program generates a two column text file,
+   histogram.txt where first column contains the lower bound of each bin with 
+   its corresponding probabilities in the second column. The last row (first column)
+   contains the upper bound of the histogram.
+*/  
 
 // header files
-#include <fstream> //for file handling
+#include <fstream>      //for file handling
 #include <iostream>
-#include <conio.h> //for getch()
-#include <vector>  //for vector
+#include <conio.h>      //for getch()
+#include <vector>       //for vector
 #include <cmath>
-#include <map> //for map
-#include <algorithm>
+#include <map>          //for map
+#include <algorithm>    //for transform
 
 using namespace std;
 
-// This code defines a class called reader, which has a member function called readDatFile
-// The purpose of this function is to read data from a file and return it in the form of a vector of vectors
 
-// reader class with readDatfile
+// reader class
+// contains readDataFile member function that reads data from a file and returns it in form of a vector of vectors
 class reader
 {
 
 private:
-    vector<vector<double>> f_vector_data; // create a vector of vectors to store the data
+    vector<vector<double>> f_vector_data; // a vector of vectors to store the data
 
 public:
-    // member function that reads data from a file and returns it as a vector of vectors
-    vector<vector<double>> readDatFile(string s)
+    // readData member funtion 
+    // takes file locataion as argument
+    vector<vector<double>> readDatFile(string fileLoc)
     {
 
-        ifstream fin;       // create an input file stream object
-        fin.open(s);        // open the file with the name given in the parameter string
-        if (!fin.is_open()) // check if the file was opened successfully
+        ifstream fin;             // creates an input file stream object
+        fin.open(fileLoc);        // open the file with the name given in the parameter string
+        if (!fin.is_open())       // check if the file was opened successfully
         {
+            // if the file was not opened successfully, print an error message and exit the program
             cout << "\nNOT ABLE TO READ FILE! Press any key to exit";
             getch();
-            exit(0); // if the file was not opened successfully, print an error message and exit the program
+            exit(0); 
         }
 
         double x;            // temporary variable to store each value read from the file
-        int c = 1;           // counter variable to keep track of how many values have been read
+        int c = 1;           // counter to keep track of how many values have been read
         vector<double> temp; // temporary vector to store each group of 4 values read from the file
         while (fin >> x)     // loop through the file until there are no more values to read
         {
             temp.push_back(x); // add the current value to the temporary vector
+
             if ((c % 4) == 0)  // if the temporary vector contains 4 values
             {
-                f_vector_data.push_back(temp);        // add the temporary vector to the main vector of vectors
-                temp.erase(temp.begin(), temp.end()); // clear the temporary vector to prepare for the next group of 4 values
+                f_vector_data.push_back(temp);        // adds the temporary vector to the main vector of vectors
+                temp.erase(temp.begin(), temp.end()); // clears the temporary vector to prepare for the next group of 4 values
             }
-            c++; // increment the counter variable
+            c++;
         }
-        return f_vector_data; // return the main vector of vectors containing all the data from the file
+        return f_vector_data; // returns the main vector of vectors containing all the data from the file
     }
 };
 
-// data class
+
+// P_Vector class
+// stores the momentum components along x,y and z axis
+// has member functions to extract transverse momentum, and angles phi and theta
 class P_Vector
 {
 protected:
     double pX, pY, pZ; // protected variables for momentum components
 
 public:
-    // Constructor with default values for momentum components
+    // constructor with default values for momentum components
     P_Vector(double x = 0.0, double y = 0.0, double z = 0.0)
     {
         pX = x;
@@ -67,7 +80,7 @@ public:
         pZ = z;
     }
 
-    // Getters for momentum components
+    // getter functions for momentum components
     double get_pX()
     {
         return pX;
@@ -81,19 +94,19 @@ public:
         return pZ;
     }
 
-    // Calculate transverse momentum
+    // member function to calculate transverse momentum
     double pT()
     {
         return sqrt(pow(pX, 2) + pow(pY, 2));
     }
 
-    // Calculate azimuthal angle
+    // member function to calculate azimuthal angle (phi)
     double azimuth_angle()
     {
         return atan2(pY, pX);
     }
 
-    // Calculate polar angle
+    // member function to calculate polar angle (theta)
     double polar_angle()
     {
         double p = sqrt(pow(pX, 2) + pow(pY, 2) + pow(pZ, 2)); // net momentum
@@ -101,25 +114,22 @@ public:
     }
 };
 
+// data class (two layered)
+// FourVector class has energy data member to store energy, along with pX,pY,pZ inherited from P_Vector
+// It has member function that returns mass of the particle represented by the fourvector object
 class FourVector : public P_Vector
 {
 protected:
-    double e; // energy component
+    double e; // variable to store energy
 
 public:
-    // Constructor with default values for momentum and energy components
+    // constructor with default values for momentum and energy components
     FourVector(double pX = 0.0, double pY = 0.0, double pZ = 0.0, double e1 = 0.0) : P_Vector(pX, pY, pZ)
     {
         e = e1;
     }
 
-    // Getter for energy component
-    double get_e()
-    {
-        return e;
-    }
-
-    // Method to update momentum and energy components
+    // Method to update momentum components and energy
     void update(double x, double y, double z, double e1)
     {
         pX = x;
@@ -127,6 +137,13 @@ public:
         pZ = z;
         e = e1;
     }
+
+    // getter function for energy
+    double get_e()
+    {
+        return e;
+    }
+
 
     // Method to calculate mass of the particle represented by the four-vector
     double calcMass()
@@ -137,36 +154,39 @@ public:
     }
 };
 
-// This function initializes a map with keys ranging from minx to maxx with bins number of equally spaced bins.
+// Function to initialize a map representing a histogram
+// where keys are the lower bounds of each bin of the histogram
 // The values of all the keys are initialized to 0.
-void intilizeMap(map<double, double> &mp, double minx, double maxx, int bins)
+void intilizeMap(map<double, double> &mp, double minx, double maxx, int n_bins)
 {
-    double width = (maxx - minx) / bins; // calculating the width of each bin
+    double width = (maxx - minx) / n_bins; // calculating the width of each bin
     for (double i = minx; i < maxx; i += width)
     {
         mp.insert({i, 0}); // inserting key-value pairs into the map
     }
 }
 
-// This function updates the value of the corresponding key in the map by incrementing it by 1
-// if the value of x falls within the range minx and maxx.
+// Function to update the value of the corresponding key in the map according
+// to interval in which the input data x lies
+
 void mapUpdate(double x, map<double, double> &mp, double minx, double maxx)
 {
-    if (x >= minx && x < maxx)                                             // checking if x falls within the range minx and maxx
-        if ((mp.find(x) != mp.end()) && (mp.lower_bound(x) == mp.find(x))) // checking if x is already a key in the map
+    if (x >= minx && x < maxx)                                             // check if x falls within the range minx and maxx
+        if ((mp.find(x) != mp.end()) && (mp.lower_bound(x) == mp.find(x))) // check if x is already a key in the map
         {
             mp[x]++; // incrementing the value of the key by 1
         }
         else
         {
 
-            auto it = mp.lower_bound(x); // getting the iterator to the key that is greater than or equal to x
-            it--;                        // moving the iterator to the key that is less than x
+            auto it = mp.lower_bound(x);
+            it--;                        // getting the iterator to the key just lower than x
             (*it).second++;              // incrementing the value of the key by 1
         }
 }
 
-// This function takes a reference to a map as input and updates the values of the map to probabilities.
+
+// Function to update the values of the map to probabilities.
 void probabilityMap(map<double, double> &mp)
 {
     int sum = 0;       // initializing a variable to store the sum of all values in the map
@@ -177,85 +197,97 @@ void probabilityMap(map<double, double> &mp)
     auto it = mp.begin();          // getting an iterator to the beginning of the map
     for (it; it != mp.end(); it++) // iterating through the map
     {
-        (*it).second = (double)(*it).second / sum; // updating the value of the key by dividing it with the sum of all values
+        (*it).second = (double)(*it).second / sum; // updating the probability of each value
     }
 }
 
-// This function takes a map and the maximum value of the x-axis as input and generates a histogram file.
+// Function to generate a histogram file from a map
 void generate_HistFile(map<double, double> mp, double maxx)
 {
-    // creating output file and storing probabilities corresponding to bins
     ofstream fout;                             // creating an output file stream
     fout.open("histogram.txt", ios_base::out); // opening the file for writing
     for (auto it : mp)                         // iterating through the map
     {
-        fout << it.first << " " << it.second; // writing the key-value pair to the file
-        fout << endl;                         // writing a new line character to the file
+        fout << it.first << "  " << it.second; // writing the key-value pair to the file
+        fout << endl;                          // writing a new line character
     }
-    fout << maxx; // writing the maximum value of the x-axis to the file
+    fout << maxx; // adding the upper bound of the histogram to column 1
     cout << "\n   histogram.txt file has been generated\n";
 }
 
+// main function
+
 int main()
 {
-#pragma region inputbyUser
-    // input by user
+
+    // Getting inputs from user
+    // The inputs include the file location, distribution name, number of bins,
+    // minimum and maximum values of x
+    // These are used to generate a histogram for the given distribution
+
+    // Get input from user
     cout << "\n*************************************************\n\tWelcome to 1D Histogram Generator\n*************************************************\n";
-
+    
     string file_loc;
-    cout << "\n - Enter the Input File Location \n   >> ";
+    cout << "\n - Enter the Input File Location \n >> ";
     cin >> file_loc;
-    // selecting distribution
-    cout << "\n - Enter the distribution name (like pT,pX,pY,pZ,energy,mass) :";
-    // cout << "\n \t1> pT";
-    // cout << "\n \t2> pX";
-    // cout << "\n \t3> pY";
-    // cout << "\n \t4> pZ";
-    // cout << "\n \t5> Energy";
-    // cout << "\n \t6> Mass";
-    cout << "\n   >>";
-    string d_name;
+    string d_name;  //distribution name
+    cout << "\n - Enter the distribution name (like pT,pX,pY,pZ,energy,mass) :\n >>";
     cin >> d_name;
-    transform(d_name.begin(), d_name.end(), d_name.begin(), ::tolower);
     double minx, maxx, noOfBins;
-    cout << "\n - Enter the number of bins \n   >> ";
+    cout << "\n - Enter the number of bins \n >> ";
     cin >> noOfBins;
-    cout << "\n - Enter minimum value of x \n   >> ";
+    cout << "\n - Enter minimum value of x \n >> ";
     cin >> minx;
-    cout << "\n - Enter maximum value of x \n   >> ";
+    cout << "\n - Enter maximum value of x \n >> ";
     cin >> maxx;
-    //
-#pragma endregion
 
-    //
+    cout << "\n Generating Histogram ... \n ";
 
-#pragma region read data file and map intialization
-    // read data file
-    reader r;
-    vector<vector<double>> vec = r.readDatFile(file_loc);
 
+
+    // read data from input file
+
+    reader r;   //reader object
+    // storing four vector data from file in form of a vector of fourVectors
+    vector<vector<double>> fvData = r.readDatFile(file_loc);
+
+    // fourvector object to store a four vectors from fvData 
+    // and calculate other quantities like mass using member functions
     FourVector f;
 
-    // map to store histogram
+    // intialize a map to store histogram
     map<double, double> mp;
     intilizeMap(mp, minx, maxx, noOfBins);
-#pragma endregion
+
+    // Convert the distribution name to lowercase using the transform function 
+    // to facilitate case insensitive string comparison
+    transform(d_name.begin(), d_name.end(), d_name.begin(), ::tolower);
 
     if (d_name == "pt") // Tranverse Momentum distribution
     {
-        for (int i = 0; i < vec.size(); i++)
+        // iterate over each fourvector present in fvData
+        // and generate histogram according to values of pT for each fourvector 
+        for (int i = 0; i < fvData.size(); i++)
         {
-            f.update(vec[i][0], vec[i][1], vec[i][2], vec[i][3]);
+            // assignment of FourVector object f using to ith fourvector of fvData 
+            f.update(fvData[i][0], fvData[i][1], fvData[i][2], fvData[i][3]);
+            // update the histogram (stored in map mp) according to value of pT of object f
             mapUpdate(f.pT(), mp, minx, maxx);
         }
+
+        // convert y values of generated histogram (stored in map mp) to probabilities
         probabilityMap(mp);
+        // copy the histogram data from the map to a text file
         generate_HistFile(mp, maxx);
     }
+
     else if (d_name == "px") // pX distribution
     {
-        for (int i = 0; i < vec.size(); i++)
+        // same process as in in pT
+        for (int i = 0; i < fvData.size(); i++)
         {
-            f.update(vec[i][0], vec[i][1], vec[i][2], vec[i][3]);
+            f.update(fvData[i][0], fvData[i][1], fvData[i][2], fvData[i][3]);
             mapUpdate(f.get_pX(), mp, minx, maxx);
         }
         probabilityMap(mp);
@@ -264,9 +296,9 @@ int main()
 
     else if (d_name == "py") // pY distribution
     {
-        for (int i = 0; i < vec.size(); i++)
+        for (int i = 0; i < fvData.size(); i++)
         {
-            f.update(vec[i][0], vec[i][1], vec[i][2], vec[i][3]);
+            f.update(fvData[i][0], fvData[i][1], fvData[i][2], fvData[i][3]);
             mapUpdate(f.get_pY(), mp, minx, maxx);
         }
         probabilityMap(mp);
@@ -275,9 +307,9 @@ int main()
 
     else if (d_name == "pz") // pZ distribution
     {
-        for (int i = 0; i < vec.size(); i++)
+        for (int i = 0; i < fvData.size(); i++)
         {
-            f.update(vec[i][0], vec[i][1], vec[i][2], vec[i][3]);
+            f.update(fvData[i][0], fvData[i][1], fvData[i][2], fvData[i][3]);
             mapUpdate(f.get_pZ(), mp, minx, maxx);
         }
         probabilityMap(mp);
@@ -286,9 +318,9 @@ int main()
 
     else if (d_name == "energy") // energy distribution
     {
-        for (int i = 0; i < vec.size(); i++)
+        for (int i = 0; i < fvData.size(); i++)
         {
-            f.update(vec[i][0], vec[i][1], vec[i][2], vec[i][3]);
+            f.update(fvData[i][0], fvData[i][1], fvData[i][2], fvData[i][3]);
             mapUpdate(f.get_e(), mp, minx, maxx);
         }
         probabilityMap(mp);
@@ -297,11 +329,10 @@ int main()
 
     else if (d_name == "mass") // mass distribution
     {
-        for (int i = 0; i < vec.size(); i++)
+        for (int i = 0; i < fvData.size(); i++)
         {
-            f.update(vec[i][0], vec[i][1], vec[i][2], vec[i][3]);
-            double m = f.calcMass();
-            mapUpdate(m, mp, minx, maxx);
+            f.update(fvData[i][0], fvData[i][1], fvData[i][2], fvData[i][3]);
+            mapUpdate(f.calcMass(), mp, minx, maxx);
         }
         probabilityMap(mp);
         generate_HistFile(mp, maxx);
@@ -309,10 +340,10 @@ int main()
 
     else
     {
-        cout << "\n Specified distribution not found !!";
+        // Error message if entered distribution is not available
+        cout << "\n  ERROR!! Distribution not found !!";
         getch();
     }
 
     getch();
 }
-#pragma endregion
